@@ -9,11 +9,14 @@ import {
   TrendingUp,
 } from "lucide-react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import React, { useState } from "react";
+import { toast } from "sonner";
 
 const Courseinfo = ({ course }) => {
   const courseLayout = course?.courseJson?.course;
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const GenerateCourseContent = async () => {
     // call API to call Generate Content
@@ -27,9 +30,12 @@ const Courseinfo = ({ course }) => {
       });
       console.log(result.data);
       setLoading(false);
+      router.replace('/workspace');
+      toast.success("Course Generated Successfully");
     } catch (error) {
       console.log(error);
       setLoading(false);
+      toast.error("Server Side error try again!");
     }
   };
   return (
