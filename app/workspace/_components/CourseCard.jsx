@@ -9,6 +9,10 @@ import { toast } from "sonner";
 function CourseCard({ course }) {
   const courseJson = course?.courseJson?.course;
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    console.log("Course Content:", course.courseContent);
+  }, []);
   const onEnrollCourse = async () => {
     try {
       setLoading(true);
@@ -48,7 +52,10 @@ function CourseCard({ course }) {
             <Book className="text-primary h-5 w-5"></Book>
             {courseJson?.noOfChapters} Chapters
           </h2>
-          {course?.courseContent.length != 0 ? (
+          {course?.courseContent &&
+          (Array.isArray(course?.courseContent)
+            ? course.courseContent.length > 0
+            : Object.keys(course.courseContent).length > 0) ? (
             <Button size={"sm"} onClick={onEnrollCourse} disabled={loading}>
               {loading ? (
                 <LoaderCircle className="animate-spin"></LoaderCircle>
