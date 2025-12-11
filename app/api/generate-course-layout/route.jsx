@@ -1,12 +1,12 @@
 import { db } from "@/config/db";
 import { coursesTable } from "@/config/schema";
 import { currentUser } from "@clerk/nextjs/server";
-import { GoogleGenAI } from "@google/genai";
+import OpenAI from "openai";
 import axios from "axios";
 import { NextResponse } from "next/server";
 
 const PROMPT = `
-Genrate Learning Course depends on following details. In which Make sure to add Course Name, Description,Course Banner Image Prompt (Create a modern, flat-style 2D digital illustration representing user Topic. Include UI/UX elements such as mockup screens, text blocks, icons, buttons, and creative workspace tools. Add symbolic elements related to user Course, like sticky notes, design components, and visual aids. Use a vibrant color palette (blues, purples, oranges) with a clean, professional look. The illustration should feel creative, tech-savvy, and educational, ideal for visualizing concepts in user Course) for Course Banner in 3d format Chapter Name, , Topic under each chapters , Duration for each chapters etc, in JSON format only
+Genrate Learning Course depends on following details. In which Make sure to add Course Name, Description, Course Banner Image Prompt (Create a modern, flat-style 2D digital illustration representing user Topic. Include UI/UX elements such as mockup screens, text blocks, icons, buttons, and creative workspace tools. Add symbolic elements related to user Course, like sticky notes, design components, and visual aids. Use a vibrant color palette (blues, purples, oranges) with a clean, professional look. The illustration should feel creative, tech-savvy, and educational, ideal for visualizing concepts in user Course) for Course Banner in 3d format, Chapter Name, Topic under each chapters, Duration for each chapter, etc., in JSON format only.
 
 Schema:
 
@@ -18,75 +18,72 @@ Schema:
     "level": "string",
     "includeVideo": "boolean",
     "noOfChapters": "number",
-
-"bannerImagePrompt": "string",
+    "bannerImagePrompt": "string",
     "chapters": [
       {
         "chapterName": "string",
         "duration": "string",
-        "topics": [
-          "string"
-        ],
-     
+        "topics": ["string"]
       }
     ]
   }
 }
 
-, User Input: `;
+User Input:
+`;
 
-export const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
 });
+
 export async function POST(req) {
   const { courseId, ...formData } = await req.json();
-  const user = currentUser();
+  const user = await currentUser();
 
   async function main() {
-    const config = {
-      thinkingConfig: {
-        thinkingBudget: -1,
-      },
-    };
-    const model = "gemini-2.5-flash";
-    const contents = [
-      {
-        role: "user",
-        parts: [
-          {
-            text: PROMPT + JSON.stringify(formData),
-          },
-        ],
-      },
-    ];
-
-    const response = await ai.models.generateContent({
-      model,
-      config,
-      contents,
+    // ---------- OPENAI CALL ----------
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      temperature: 0.3,
+      messages: [
+        {
+          role: "user",
+          content: PROMPT + JSON.stringify(formData),
+        },
+      ],
     });
-    console.log(response.candidates[0].content.parts[0].text);
-    const RawResp = response?.candidates[0]?.content?.parts[0]?.text;
-    const RawJson = RawResp.replace("```json", "").replace("```", "");
-    const JSONResp = JSON.parse(RawJson);
+
+    let raw = completion.choices[0].message.content;
+
+    // ---------- CLEAN JSON ----------
+    raw = raw
+      .replace(/```json/i, "")
+      .replace(/```/g, "")
+      .trim();
+
+    const JSONResp = JSON.parse(raw);
+
     const ImagePrompt = JSONResp.course?.bannerImagePrompt;
-    // generate Image
+
+    // ---------- IMAGE GENERATION USING AI GURU LAB (unchanged) ----------
     const bannerImageUrl = await GenerateImage(ImagePrompt);
 
-    // save all information to database
-    const result = await db.insert(coursesTable).values({
+    // ---------- SAVE IN DATABASE ----------
+    await db.insert(coursesTable).values({
       ...formData,
       courseJson: JSONResp,
-      userEmail: (await user).primaryEmailAddress.emailAddress,
+      userEmail: user.primaryEmailAddress.emailAddress,
       cid: courseId,
       bannerImageUrl: bannerImageUrl,
     });
 
-    return NextResponse.json({ courseId: courseId });
+    return NextResponse.json({ courseId });
   }
+
   return main();
 }
 
+// -------------------- AI GURU LAB IMAGE GENERATOR (unchanged) --------------------
 async function GenerateImage(imagePrompt) {
   const BASE_URL = "https://aigurulab.tech";
   const result = await axios.post(
@@ -95,16 +92,16 @@ async function GenerateImage(imagePrompt) {
       width: 1024,
       height: 1024,
       input: imagePrompt,
-      model: "flux", //'flux'
-      aspectRatio: "16:9", //Applicable to Flux model only
+      model: "flux",
+      aspectRatio: "16:9",
     },
     {
       headers: {
-        "x-api-key": process?.env?.AI_GURU_LAB_API, // Your API Key
-        "Content-Type": "application/json", // Content Type
+        "x-api-key": process.env.AI_GURU_LAB_API,
+        "Content-Type": "application/json",
       },
     }
   );
-  console.log(result.data.image); //Output Result: Base 64 Image
-  return result.data.image;
+
+  return result.data.image; // base64 output
 }
