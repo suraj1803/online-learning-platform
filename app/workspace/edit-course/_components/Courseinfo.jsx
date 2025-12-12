@@ -5,15 +5,17 @@ import {
   Clock,
   Loader2,
   LucideLoader2,
+  PlayCircle,
   Settings,
   TrendingUp,
 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import { toast } from "sonner";
 
-const Courseinfo = ({ course }) => {
+const Courseinfo = ({ course, viewCourse }) => {
   const courseLayout = course?.courseJson?.course;
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -30,7 +32,7 @@ const Courseinfo = ({ course }) => {
       });
       console.log(result.data);
       setLoading(false);
-      router.replace('/workspace');
+      router.replace("/workspace");
       toast.success("Course Generated Successfully");
     } catch (error) {
       console.log(error);
@@ -68,23 +70,31 @@ const Courseinfo = ({ course }) => {
             </section>
           </div>
         </div>
-        <Button
-          className="max-w-sm flex items-center gap-2"
-          onClick={GenerateCourseContent}
-          disabled={loading}
-        >
-          {loading ? (
-            <>
-              <LucideLoader2 className="h-4 w-4 animate-spin" />
-              Generating...
-            </>
-          ) : (
-            <>
-              <Settings className="h-4 w-4" />
-              Generate Content
-            </>
-          )}
-        </Button>
+        {!viewCourse ? (
+          <Button
+            className="max-w-sm flex items-center gap-2"
+            onClick={GenerateCourseContent}
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <LucideLoader2 className="h-4 w-4 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Settings className="h-4 w-4" />
+                Generate Content
+              </>
+            )}
+          </Button>
+        ) : (
+          <Link href={`/course/${course?.cid}`}>
+            <Button>
+              <PlayCircle></PlayCircle> Continue Learning
+            </Button>
+          </Link>
+        )}
       </div>
       {course?.bannerImageUrl && (
         <Image
