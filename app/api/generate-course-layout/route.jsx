@@ -1,9 +1,10 @@
 import { db } from "@/config/db";
 import { coursesTable } from "@/config/schema";
-import { currentUser } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import OpenAI from "openai";
 import axios from "axios";
 import { NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
 
 const PROMPT = `
 Genrate Learning Course depends on following details. In which Make sure to add Course Name, Description, Course Banner Image Prompt (Create a modern, flat-style 2D digital illustration representing user Topic. Include UI/UX elements such as mockup screens, text blocks, icons, buttons, and creative workspace tools. Add symbolic elements related to user Course, like sticky notes, design components, and visual aids. Use a vibrant color palette (blues, purples, oranges) with a clean, professional look. The illustration should feel creative, tech-savvy, and educational, ideal for visualizing concepts in user Course) for Course Banner in 3d format, Chapter Name, Topic under each chapters, Duration for each chapter, etc., in JSON format only.
@@ -39,9 +40,24 @@ const openai = new OpenAI({
 export async function POST(req) {
   const { courseId, ...formData } = await req.json();
   const user = await currentUser();
+  const { has } = await auth();
+  const hasPremium = has({ plan: "starter" });
 
   async function main() {
     // ---------- OPENAI CALL ----------
+
+    if (!hasPremium) {
+      const result = await db
+        .select()
+        .from(coursesTable)
+        .where(
+          eq(coursesTable.userEmail, user?.primaryEmailAddress.emailAddress)
+        );
+
+      if (result?.length >= 1) {
+        return NextResponse.json({ resp: "limit exceed" });
+      }
+    }
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       temperature: 0.3,

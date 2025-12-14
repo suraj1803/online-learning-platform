@@ -5,66 +5,67 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { v4 as uuidv4 } from 'uuid';
+} from "@/components/ui/dialog";
+import { v4 as uuidv4 } from "uuid";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
-import { Switch } from "@/components/ui/switch"
-import { Textarea } from "@/components/ui/textarea"
-import { Button } from "@/components/ui/button"
-import { Loader2Icon, Sparkle } from "lucide-react"
-import { useState } from "react"
-import axios from "axios"
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Loader2Icon, Sparkle } from "lucide-react";
+import { useState } from "react";
+import axios from "axios";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 const AddNewCourseDialog = ({ children }) => {
   const [loading, setLoading] = useState(false);
 
-  const [formData, setFormData] = useState(
-    {
-      name: '',
-      description: '',
-      includeVideo: false,
-      noOfChapters: 1,
-      category: '',
-      level: ''
-    }
-  );
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    includeVideo: false,
+    noOfChapters: 1,
+    category: "",
+    level: "",
+  });
 
   const router = useRouter();
 
   const onHandleInputChange = (field, value) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
-    }))
-    console.log(formData)
-  }
+      [field]: value,
+    }));
+    console.log(formData);
+  };
 
   const onGenerate = async () => {
     console.log(formData);
     const courseId = uuidv4();
     try {
-
       setLoading(true);
-      const result = await axios.post('/api/generate-course-layout', {
+      const result = await axios.post("/api/generate-course-layout", {
         ...formData,
-        courseId: courseId
+        courseId: courseId,
       });
       console.log(result.data);
+      if (result.data?.resp === "limit exceed") {
+        toast.warning("Please subscribe to plan!");
+        router.push("/workspace/billing");
+      }
       setLoading(false);
-      router.push('/workspace/edit-course/' + result.data?.courseId);
-    }
-    catch (e) {
+      router.push("/workspace/edit-course/" + result.data?.courseId);
+    } catch (e) {
       setLoading(false);
       console.log(e);
     }
-  }
+  };
   return (
     <Dialog>
       <DialogTrigger asChild>{children}</DialogTrigger>
@@ -75,24 +76,48 @@ const AddNewCourseDialog = ({ children }) => {
             <div className="flex flex-col gap-3 mt-3">
               <div>
                 <label> Course Name</label>
-                <Input placeholder="Course Name" onChange={(event) => onHandleInputChange('name', event?.target.value)} />
+                <Input
+                  placeholder="Course Name"
+                  onChange={(event) =>
+                    onHandleInputChange("name", event?.target.value)
+                  }
+                />
               </div>
               <div>
                 <label> Course Description (Optional)</label>
-                <Textarea placeholder="Course Description" onChange={(event) => onHandleInputChange('description', event?.target.value)} />
+                <Textarea
+                  placeholder="Course Description"
+                  onChange={(event) =>
+                    onHandleInputChange("description", event?.target.value)
+                  }
+                />
               </div>
               <div>
                 <label> No of Chapters</label>
-                <Input placeholder="No of Chapters" type="number" onChange={(event) => onHandleInputChange('noOfChapters', event?.target.value)} />
+                <Input
+                  placeholder="No of Chapters"
+                  type="number"
+                  onChange={(event) =>
+                    onHandleInputChange("noOfChapters", event?.target.value)
+                  }
+                />
               </div>
               <div className="flex gap-3 items-center">
                 <label>Include Video</label>
-                <Switch onCheckedChange={() => onHandleInputChange('includeVideo', !formData?.includeVideo)}></Switch>
+                <Switch
+                  onCheckedChange={() =>
+                    onHandleInputChange("includeVideo", !formData?.includeVideo)
+                  }
+                ></Switch>
               </div>
               <div>
                 <label>Difficulty level</label>
                 <div className="mt-1">
-                  <Select onValueChange={(value) => onHandleInputChange('level', value)}>
+                  <Select
+                    onValueChange={(value) =>
+                      onHandleInputChange("level", value)
+                    }
+                  >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Difficulty Level" />
                     </SelectTrigger>
@@ -106,14 +131,25 @@ const AddNewCourseDialog = ({ children }) => {
               </div>
               <div>
                 <label> Category</label>
-                <Input placeholder="Category (Separted by Comma)" onChange={(event) => onHandleInputChange('category', event?.target.value)} />
+                <Input
+                  placeholder="Category (Separted by Comma)"
+                  onChange={(event) =>
+                    onHandleInputChange("category", event?.target.value)
+                  }
+                />
               </div>
               <div className="mt-5">
-                <Button className={'w-full'} onClick={onGenerate} disabled={loading}>
-                  {loading ? <Loader2Icon className="animate-spin"></Loader2Icon> :
-                    <Sparkle />}
+                <Button
+                  className={"w-full"}
+                  onClick={onGenerate}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <Loader2Icon className="animate-spin"></Loader2Icon>
+                  ) : (
+                    <Sparkle />
+                  )}
                   Generate Course
-
                 </Button>
               </div>
             </div>
@@ -121,7 +157,7 @@ const AddNewCourseDialog = ({ children }) => {
         </DialogHeader>
       </DialogContent>
     </Dialog>
-  )
-}
+  );
+};
 
-export default AddNewCourseDialog
+export default AddNewCourseDialog;
