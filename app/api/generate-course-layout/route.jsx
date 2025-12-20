@@ -44,8 +44,6 @@ export async function POST(req) {
   const hasPremium = has({ plan: "starter" });
 
   async function main() {
-    // ---------- OPENAI CALL ----------
-
     if (!hasPremium) {
       const result = await db
         .select()
@@ -71,7 +69,6 @@ export async function POST(req) {
 
     let raw = completion.choices[0].message.content;
 
-    // ---------- CLEAN JSON ----------
     raw = raw
       .replace(/```json/i, "")
       .replace(/```/g, "")
@@ -81,10 +78,8 @@ export async function POST(req) {
 
     const ImagePrompt = JSONResp.course?.bannerImagePrompt;
 
-    // ---------- IMAGE GENERATION USING AI GURU LAB (unchanged) ----------
     const bannerImageUrl = await GenerateImage(ImagePrompt);
 
-    // ---------- SAVE IN DATABASE ----------
     await db.insert(coursesTable).values({
       ...formData,
       courseJson: JSONResp,
@@ -99,7 +94,6 @@ export async function POST(req) {
   return main();
 }
 
-// -------------------- AI GURU LAB IMAGE GENERATOR (unchanged) --------------------
 async function GenerateImage(imagePrompt) {
   const BASE_URL = "https://aigurulab.tech";
   const result = await axios.post(
@@ -119,5 +113,5 @@ async function GenerateImage(imagePrompt) {
     }
   );
 
-  return result.data.image; // base64 output
+  return result.data.image; 
 }

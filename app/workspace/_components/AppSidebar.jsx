@@ -62,7 +62,6 @@ const AppSidebar = () => {
     <Sidebar>
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-3">
-          {/* Educational SVG Logo */}
           <svg
             width="36"
             height="36"
@@ -81,7 +80,6 @@ const AppSidebar = () => {
             />
           </svg>
 
-          {/* Text */}
           <h1 className="text-xl font-bold tracking-wide text-gray-900">
             EduNova
           </h1>

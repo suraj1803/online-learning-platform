@@ -5,7 +5,6 @@ import { db } from "@/config/db";
 import { coursesTable } from "@/config/schema";
 import { eq } from "drizzle-orm";
 
-// ---------------- OpenAI Client ----------------
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -33,7 +32,6 @@ Schema:
 User Input:
 `;
 
-// ------------ Safe JSON cleaner ------------
 function cleanJson(str) {
   return str
     .replace(/```json/i, "")
@@ -41,7 +39,6 @@ function cleanJson(str) {
     .trim();
 }
 
-// ------------ YouTube fetch ------------
 async function GetYoutubeVideos(topic) {
   try {
     const params = {
@@ -62,7 +59,7 @@ async function GetYoutubeVideos(topic) {
       title: item.snippet.title,
     }));
   } catch (err) {
-    console.error("❌ YouTube API Error:", err.message);
+    console.error(" YouTube API Error:", err.message);
     return [];
   }
 }
@@ -71,7 +68,6 @@ export async function POST(req) {
   try {
     const { courseJson, courseTitle, courseId } = await req.json();
 
-    // ----------------- SINGLE OPENAI CALL -----------------
     const userInput = JSON.stringify(courseJson.chapters);
 
     const completion = await openai.chat.completions.create({
@@ -88,14 +84,12 @@ export async function POST(req) {
     const raw = cleanJson(completion.choices[0].message.content);
     const parsed = JSON.parse(raw);
 
-    // Add YouTube results for each topic
     for (const chapter of parsed.chapters) {
       for (const topic of chapter.topics) {
         topic.youtubeVideos = await GetYoutubeVideos(topic.topic);
       }
     }
 
-    // Save to database
     await db
       .update(coursesTable)
       .set({ courseContent: parsed })
